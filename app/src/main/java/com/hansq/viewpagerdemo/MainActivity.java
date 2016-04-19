@@ -11,17 +11,17 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 
-public class MainActivity extends Activity implements ViewPager.OnPageChangeListener {
+public class MainActivity extends Activity {
 
     /**
      * ViewPager
      */
-    private ViewPager viewPager;
+    private ViewPager mViewPager;
 
     /**
-     * 装点点的ImageView数组
+     * 装点的ImageView数组
      */
-    private ImageView[] tips;
+    private ImageView[] mTips;
 
     /**
      * 装ImageView数组
@@ -31,113 +31,84 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
     /**
      * 图片资源id
      */
-    private int[] imgIdArray;
+    private int[] mImageIdArray;
 
     /**
      * 图片总数
      */
-    private int imageCount;
+    private int mImageCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ViewGroup group = (ViewGroup) findViewById(R.id.viewGroup);
-        viewPager = (ViewPager) findViewById(R.id.viewPager);
+        mViewPager = (ViewPager) findViewById(R.id.viewPager);
 
-        imgIdArray = new int[]{
+        mImageIdArray = new int[]{
                 R.mipmap.item_1,
                 R.mipmap.item_2,
                 R.mipmap.item_3,
-                R.mipmap.item_4,
-                R.mipmap.item_5,
-                R.mipmap.item_6,
         };
-        imageCount = imgIdArray.length;
-        //将点加入到ViewGroup中
-        tips = new ImageView[imageCount];
-        for (int i = 0; i < imageCount; i++) {
+        mImageCount = mImageIdArray.length;
+        //将图片下方的同步点加入到ViewGroup中
+        mTips = new ImageView[mImageCount];
+        if(mImageCount>1){
+        for (int i = 0; i < mImageCount; i++) {
             ImageView imageView = new ImageView(this);
             imageView.setLayoutParams(new ViewGroup.LayoutParams(10, 10));
-            tips[i] = imageView;
+            mTips[i] = imageView;
 
             if (i == 0) {
-                tips[i].setBackgroundResource(R.mipmap.white_dot);
+                mTips[i].setBackgroundResource(R.mipmap.white_dot);
             } else {
-                tips[i].setBackgroundResource(R.mipmap.gray_dot);
+                mTips[i].setBackgroundResource(R.mipmap.gray_dot);
             }
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(new LayoutParams(
                     LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
             ));
-            layoutParams.leftMargin = 5;
-            layoutParams.rightMargin = 5;
+            layoutParams.setMargins(5,0,5,0);
             group.addView(imageView, layoutParams);
-
+        }
         }
         //将图片装载到数组中
-        mImageViews = new ImageView[imageCount];
-        for (int i = 0; i < imageCount; i++) {
+        mImageViews = new ImageView[mImageCount];
+        for (int i = 0; i < mImageCount; i++) {
             ImageView imageView = new ImageView(this);
             mImageViews[i] = imageView;
-            imageView.setBackgroundResource(imgIdArray[i]);
-
+            imageView.setBackgroundResource(mImageIdArray[i]);
         }
         //设置Adapter
-        viewPager.setAdapter(new MyAdapter());
-        //设置监听，主要是设置点点的背景
-        viewPager.setOnPageChangeListener(this);
-        //设置ViewPager的默认项, 设置为长度的100倍，这样子开始就能往左滑动
-        viewPager.setCurrentItem((mImageViews.length) * 100);
-
-    }
-
-    @Override
-    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-    }
-
-    @Override
-    public void onPageSelected(int position) {
-        setImageBackground(position % imageCount);
-    }
-
-    @Override
-    public void onPageScrollStateChanged(int state) {
+        mViewPager.setAdapter(new TravelTipsAdapter());
+        //设置监听，主要是设置点点的背景，addOnPageChangeListener()取代了setOnPageChangeListener()
+        mViewPager.addOnPageChangeListener(new TravelTipsViewPagerPageChangeListener());
+        //条件1：设置ViewPager的默认项, 设置为默认已经向左滑动了100次，只是自定义了100
+        // 这样开始就能往右滑动，否则初始不能向右互动
+//        mViewPager.setCurrentItem((mImageViews.length) * 100);
 
     }
 
     /**
-     * 设置选中的tip的背景
-     *
-     * @param selectItems
+     * 旅行提示的Adapter类
+     * //若想循环滑动，则应同时打开条件1与条件2
      */
-    private void setImageBackground(int selectItems) {
-        for (int i = 0; i < imageCount; i++) {
-            if (i == selectItems) {
-                tips[i].setBackgroundResource(R.mipmap.white_dot);
-            } else {
-                tips[i].setBackgroundResource(R.mipmap.gray_dot);
-            }
-        }
-    }
-
-    //内部Adapter类
-    class MyAdapter extends PagerAdapter {
-
-
+    class TravelTipsAdapter extends PagerAdapter {
         @Override
         public int getCount() {
-            return Integer.MAX_VALUE;
+            return mImageCount;
+//            条件2
+//            return Integer.MAX_VALUE;
         }
 
         @Override
         public Object instantiateItem(ViewGroup container, int position) {
-            container.addView(mImageViews[position % imageCount], 0);
-            return mImageViews[position % imageCount];
+            container.addView(mImageViews[position % mImageCount], 0);
+            return mImageViews[position % mImageCount];
         }
 
         @Override
         public void destroyItem(ViewGroup container, int position, Object object) {
-            container.removeView(mImageViews[position % imageCount]);
+            container.removeView(mImageViews[position % mImageCount]);
         }
 
         @Override
@@ -146,6 +117,44 @@ public class MainActivity extends Activity implements ViewPager.OnPageChangeList
         }
     }
 
+    /**
+     * 旅行提示的OnPageChangeListener
+     */
+    class TravelTipsViewPagerPageChangeListener implements ViewPager.OnPageChangeListener {
+
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+            //只有1张图片时，不显示图片下面的点
+            if(mImageCount>1) {
+                setImageBackground(position % mImageCount);
+            }
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+
+        }
+
+        /**
+         * 设置选中的tip的背景
+         *
+         * @param selectItems
+         */
+        private void setImageBackground(int selectItems) {
+            for (int i = 0; i < mImageCount; i++) {
+                if (i == selectItems) {
+                    mTips[i].setBackgroundResource(R.mipmap.white_dot);
+                } else {
+                    mTips[i].setBackgroundResource(R.mipmap.gray_dot);
+                }
+            }
+        }
+    }
 
 }
 
